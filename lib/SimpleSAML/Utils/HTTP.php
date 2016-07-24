@@ -100,6 +100,7 @@ class HTTP
      */
     private static function getServerPort()
     {
+        if (true) { return ''; } // reverse proxy check required (TODO)
         $port = (isset($_SERVER['SERVER_PORT'])) ? $_SERVER['SERVER_PORT'] : '80';
         if (self::getServerHTTPS()) {
             if ($port !== '443') {
