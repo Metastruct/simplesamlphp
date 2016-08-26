@@ -100,7 +100,7 @@ class sspmod_ingameauth_Auth_Source_External extends SimpleSAML_Auth_Source {
 		$computed_signature = hash_hmac('sha1', $msg,getenv('INGAMEAUTH_SECRET'));
 
 		$nowt=time();
-		if(abs($nowt-$timestamp)>120) {
+		if(abs($nowt-$timestamp)>60*10) {
 			throw new SimpleSAML_Error_BadRequest("Expired auth token. Len is " . strlen($signature));
 			return NULL;
 		}
