@@ -51,7 +51,7 @@ class sspmod_saml_Auth_Process_SQLPersistentNameID extends sspmod_saml_BaseNameI
         parent::__construct($config, $reserved);
         assert('is_array($config)');
 
-        $this->format = SAML2_Const::NAMEID_PERSISTENT;
+        $this->format = \SAML2\Constants::NAMEID_PERSISTENT;
 
         if (!isset($config['attribute'])) {
             throw new SimpleSAML_Error_Exception("PersistentNameID: Missing required option 'attribute'.");
@@ -133,6 +133,13 @@ class sspmod_saml_Auth_Process_SQLPersistentNameID extends sspmod_saml_BaseNameI
         $uid = array_values($state['Attributes'][$this->attribute]); // just in case the first index is no longer 0
         $uid = $uid[0];
 
+        if (empty($uid)) {
+            SimpleSAML\Logger::warning(
+                'Empty value in attribute '.var_export($this->attribute, true).
+                ' on user - not generating persistent NameID.'
+            );
+            return null;
+        }
 
         $value = sspmod_saml_IdP_SQLNameID::get($idpEntityId, $spEntityId, $uid);
         if ($value !== null) {
@@ -148,7 +155,7 @@ class sspmod_saml_Auth_Process_SQLPersistentNameID extends sspmod_saml_BaseNameI
                 'SQLPersistentNameID: Did not find persistent NameID for user, and not allowed to create new NameID.'
             );
             throw new sspmod_saml_Error(
-                SAML2_Const::STATUS_RESPONDER,
+                \SAML2\Constants::STATUS_RESPONDER,
                 'urn:oasis:names:tc:SAML:2.0:status:InvalidNameIDPolicy'
             );
         }

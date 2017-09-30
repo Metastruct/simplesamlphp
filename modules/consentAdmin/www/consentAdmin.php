@@ -70,7 +70,7 @@ $config = SimpleSAML_Configuration::getInstance();
 $cA_config = SimpleSAML_Configuration::getConfig('module_consentAdmin.php');
 $authority = $cA_config->getValue('authority');
 
-$as = new SimpleSAML_Auth_Simple($authority);
+$as = new \SimpleSAML\Auth\Simple($authority);
 
 // If request is a logout request
 if (array_key_exists('logout', $_REQUEST)) {
@@ -206,6 +206,7 @@ $template_sp_content = array();
 // Init template
 $template = new SimpleSAML_XHTML_Template($config, 'consentAdmin:consentadmin.php', 'consentAdmin:consentadmin');
 $translator = $template->getTranslator();
+$translator->includeLanguageFile('attributes.php'); // attribute listings translated by this dictionary
 $sp_empty_name = $translator->getTag('sp_empty_name');
 $sp_empty_description = $translator->getTag('sp_empty_description');
 

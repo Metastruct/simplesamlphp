@@ -30,7 +30,7 @@ class sspmod_saml_Auth_Process_PersistentNameID extends sspmod_saml_BaseNameIDGe
         parent::__construct($config, $reserved);
         assert('is_array($config)');
 
-        $this->format = SAML2_Const::NAMEID_PERSISTENT;
+        $this->format = \SAML2\Constants::NAMEID_PERSISTENT;
 
         if (!isset($config['attribute'])) {
             throw new SimpleSAML_Error_Exception("PersistentNameID: Missing required option 'attribute'.");
@@ -76,6 +76,14 @@ class sspmod_saml_Auth_Process_PersistentNameID extends sspmod_saml_BaseNameIDGe
         }
         $uid = array_values($state['Attributes'][$this->attribute]); // just in case the first index is no longer 0
         $uid = $uid[0];
+
+        if (empty($uid)) {
+            SimpleSAML\Logger::warning(
+                'Empty value in attribute '.var_export($this->attribute, true).
+                ' on user - not generating persistent NameID.'
+            );
+            return null;
+        }
 
         $secretSalt = SimpleSAML\Utils\Config::getSecretSalt();
 

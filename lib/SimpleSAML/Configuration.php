@@ -7,7 +7,7 @@
  * @author Andreas Aakre Solberg, UNINETT AS. <andreas.solberg@uninett.no>
  * @package SimpleSAMLphp
  */
-class SimpleSAML_Configuration
+class SimpleSAML_Configuration implements \SimpleSAML\Utils\ClearableState
 {
 
     /**
@@ -115,13 +115,22 @@ class SimpleSAML_Configuration
             return self::$loadedConfigs[$filename];
         }
 
-        $spurious_output = false;
         if (file_exists($filename)) {
             $config = 'UNINITIALIZED';
 
             // the file initializes a variable named '$config'
             ob_start();
-            require($filename);
+            if (interface_exists('Throwable')) {
+                try {
+                    require($filename);
+                } catch (ParseError $e) {
+                    self::$loadedConfigs[$filename] = self::loadFromArray(array(), '[ARRAY]', 'simplesaml');
+                    throw new SimpleSAML\Error\ConfigurationError($e->getMessage(), $filename, array());
+                }
+            } else {
+                require($filename);
+            }
+
             $spurious_output = ob_get_length() > 0;
             ob_end_clean();
 
@@ -300,7 +309,6 @@ class SimpleSAML_Configuration
             } catch (SimpleSAML\Error\ConfigurationError $e) {
                 throw \SimpleSAML\Error\CriticalConfigurationError::fromException($e);
             }
-
         }
 
         throw new \SimpleSAML\Error\CriticalConfigurationError(
@@ -378,7 +386,7 @@ class SimpleSAML_Configuration
      */
     public function getVersion()
     {
-        return 'master';
+        return '1.15.0-rc1';
     }
 
 
@@ -412,7 +420,7 @@ class SimpleSAML_Configuration
 
 
     /**
-     * Check whether an key in the configuration exists.
+     * Check whether a key in the configuration exists or not.
      *
      * @param string $name The key in the configuration to look for.
      *
@@ -797,7 +805,7 @@ class SimpleSAML_Configuration
      *                  isn't given, the option will be considered to be mandatory. The default value can be
      *                  any value, including null.
      *
-     * @return mixed The option with the given name, or $default if the option isn't found adn $default is given.
+     * @return mixed The option with the given name, or $default if the option isn't found and $default is given.
      *
      * @throws Exception If the option does not have any of the allowed values.
      */
@@ -1071,11 +1079,11 @@ class SimpleSAML_Configuration
             case 'saml20-idp-remote:SingleSignOnService':
             case 'saml20-idp-remote:SingleLogoutService':
             case 'saml20-sp-remote:SingleLogoutService':
-                return SAML2_Const::BINDING_HTTP_REDIRECT;
+                return \SAML2\Constants::BINDING_HTTP_REDIRECT;
             case 'saml20-sp-remote:AssertionConsumerService':
-                return SAML2_Const::BINDING_HTTP_POST;
+                return \SAML2\Constants::BINDING_HTTP_POST;
             case 'saml20-idp-remote:ArtifactResolutionService':
-                return SAML2_Const::BINDING_SOAP;
+                return \SAML2\Constants::BINDING_SOAP;
             case 'shib13-idp-remote:SingleSignOnService':
                 return 'urn:mace:shibboleth:1.0:profiles:AuthnRequest';
             case 'shib13-sp-remote:AssertionConsumerService':
@@ -1356,5 +1364,17 @@ class SimpleSAML_Configuration
         } else {
             return null;
         }
+    }
+
+    /**
+     * Clear any configuration information cached.
+     * Allows for configuration files to be changed and reloaded during a given request. Most useful
+     * when running phpunit tests and needing to alter config.php between test cases
+     */
+    public static function clearInternalState()
+    {
+        self::$configDirs = array();
+        self::$instance = array();
+        self::$loadedConfigs = array();
     }
 }

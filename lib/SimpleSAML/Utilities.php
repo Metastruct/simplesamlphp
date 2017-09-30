@@ -128,14 +128,14 @@ class SimpleSAML_Utilities
         $currentTime = time();
 
         if (!empty($start)) {
-            $startTime = SAML2_Utils::xsDateTimeToTimestamp($start);
+            $startTime = \SAML2\Utils::xsDateTimeToTimestamp($start);
             // Allow for a 10 minute difference in Time
             if (($startTime < 0) || (($startTime - 600) > $currentTime)) {
                 return false;
             }
         }
         if (!empty($end)) {
-            $endTime = SAML2_Utils::xsDateTimeToTimestamp($end);
+            $endTime = \SAML2\Utils::xsDateTimeToTimestamp($end);
             if (($endTime < 0) || ($endTime <= $currentTime)) {
                 return false;
             }
@@ -297,12 +297,12 @@ class SimpleSAML_Utilities
 
 
     /**
-     * @deprecated This method will be removed in SSP 2.0. Please use SimpleSAML\Utils\XML::isDOMElementOfType()
+     * @deprecated This method will be removed in SSP 2.0. Please use SimpleSAML\Utils\XML::isDOMNodeOfType()
      *     instead.
      */
     public static function isDOMElementOfType(DOMNode $element, $name, $nsURI)
     {
-        return SimpleSAML\Utils\XML::isDOMElementOfType($element, $name, $nsURI);
+        return SimpleSAML\Utils\XML::isDOMNodeOfType($element, $name, $nsURI);
     }
 
 
@@ -583,7 +583,7 @@ class SimpleSAML_Utilities
      */
     public static function validateCA($certificate, $caFile)
     {
-        SimpleSAML_XML_Validator::validateCertificate($certificate, $caFile);
+        \SimpleSAML\XML\Validator::validateCertificate($certificate, $caFile);
     }
 
 
