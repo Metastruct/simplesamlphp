@@ -30,7 +30,7 @@ abstract class SimpleSAML_Metadata_MetaDataStorageSource
      */
     public static function parseSources($sourcesConfig)
     {
-        assert('is_array($sourcesConfig)');
+        assert(is_array($sourcesConfig));
 
         $sources = array();
 
@@ -139,7 +139,6 @@ abstract class SimpleSAML_Metadata_MetaDataStorageSource
         }
 
         foreach ($metadataSet as $index => $entry) {
-
             if (!array_key_exists('host', $entry)) {
                 continue;
             }
@@ -177,7 +176,6 @@ abstract class SimpleSAML_Metadata_MetaDataStorageSource
         $metadataSet = $this->getMetadataSet($set);
 
         foreach ($metadataSet as $index => $entry) {
-
             if (!array_key_exists('hint.cidr', $entry)) {
                 continue;
             }
@@ -206,8 +204,8 @@ abstract class SimpleSAML_Metadata_MetaDataStorageSource
      */
     private function lookupIndexFromEntityId($entityId, $set)
     {
-        assert('is_string($entityId)');
-        assert('isset($set)');
+        assert(is_string($entityId));
+        assert(isset($set));
 
         $metadataSet = $this->getMetadataSet($set);
 
@@ -246,8 +244,8 @@ abstract class SimpleSAML_Metadata_MetaDataStorageSource
     public function getMetaData($index, $set)
     {
 
-        assert('is_string($index)');
-        assert('isset($set)');
+        assert(is_string($index));
+        assert(isset($set));
 
         $metadataSet = $this->getMetadataSet($set);
 
@@ -262,5 +260,4 @@ abstract class SimpleSAML_Metadata_MetaDataStorageSource
 
         return null;
     }
-
 }

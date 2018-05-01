@@ -68,7 +68,7 @@ class HTTP
             if (!is_numeric($port)) {
                 array_push($decomposed, $port);
             }
-            $current = implode($decomposed, ":");
+            $current = implode(":", $decomposed);
         }
         return $current;
     }
@@ -108,16 +108,13 @@ class HTTP
      */
     public static function getServerPort()
     {
-        if (true) { return ''; } // reverse proxy check required (TODO)
-        $port = (isset($_SERVER['SERVER_PORT'])) ? $_SERVER['SERVER_PORT'] : '80';
-        if (self::getServerHTTPS()) {
-            if ($port !== '443') {
-                return ':'.$port;
-            }
-        } else {
-            if ($port !== '80') {
-                return ':'.$port;
-            }
+		if (true) { return ''; } // reverse proxy check required (TODO)
+
+        $default_port = self::getServerHTTPS() ? '443' : '80';
+        $port = isset($_SERVER['SERVER_PORT']) ? $_SERVER['SERVER_PORT'] : $default_port;
+        
+        if ($port !== $default_port) {
+            return ':'.$port;
         }
         return '';
     }
@@ -177,7 +174,7 @@ class HTTP
 
             // disable caching of this response
             header('Pragma: no-cache');
-            header('Cache-Control: no-cache, must-revalidate');
+            header('Cache-Control: no-cache, no-store, must-revalidate');
         }
 
         // show a minimal web page with a clickable link to the URL
@@ -187,9 +184,10 @@ class HTTP
         echo '<html xmlns="http://www.w3.org/1999/xhtml">'."\n";
         echo "  <head>\n";
         echo '    <meta http-equiv="content-type" content="text/html; charset=utf-8">'."\n";
+        echo '    <meta http-equiv="refresh" content="0;URL=\''.htmlspecialchars($url).'\'">'."\n";
         echo "    <title>Redirect</title>\n";
         echo "  </head>\n";
-        echo "  <body onload=\"window.location.replace('".htmlspecialchars($url)."');\">\n";
+        echo "  <body>\n";
         echo "    <h1>Redirect</h1>\n";
         echo '      <p>You were redirected to: <a id="redirlink" href="'.htmlspecialchars($url).'">';
         echo htmlspecialchars($url)."</a>\n";
@@ -326,6 +324,10 @@ class HTTP
         }
         $url = self::normalizeURL($url);
 
+        if (filter_var($url, FILTER_VALIDATE_URL) === false) {
+            throw new \SimpleSAML_Error_Exception('Invalid URL: '.$url);
+        }
+
         // get the white list of domains
         if ($trustedSites === null) {
             $trustedSites = \SimpleSAML_Configuration::getInstance()->getValue('trusted.url.domains', array());
@@ -334,14 +336,22 @@ class HTTP
         // validates the URL's host is among those allowed
         if (is_array($trustedSites)) {
             assert(is_array($trustedSites));
-            preg_match('@^http(s?)://([^/:]+)((?::\d+)?)@i', $url, $matches);
-            $hostname = $matches[2];
+            $components = parse_url($url);
+            $hostname = $components['host'];
+
+            // check for userinfo
+            if ((isset($components['user']) && strpos($components['user'], '\\') !== false) ||
+                (isset($components['pass']) && strpos($components['pass'], '\\') !== false)
+            ) {
+                throw new \SimpleSAML_Error_Exception('Invalid URL: '.$url);
+            }
 
             // allow URLs with standard ports specified (non-standard ports must then be allowed explicitly)
-            if (!empty($matches[3]) &&
-                (($matches[1] === '' && $matches[3] !== ':80') || ($matches[1]) === 's' && $matches[3] !== ':443')
+            if (isset($components['port']) &&
+                (($components['scheme'] === 'http' && $components['port'] !== 80) ||
+                 ($components['scheme'] === 'https' && $components['port'] !== 443))
             ) {
-                $hostname = $hostname.$matches[3];
+                $hostname = $hostname.':'.$components['port'];
             }
 
             $self_host = self::getSelfHostWithNonStandardPort();
@@ -363,7 +373,7 @@ class HTTP
             } else {
                 // add self host to the white list
                 $trustedSites[] = $self_host;
-                $trusted = in_array($hostname, $trustedSites);
+                $trusted = in_array($hostname, $trustedSites, true);
             }
 
             // throw exception due to redirection to untrusted site
@@ -409,7 +419,7 @@ class HTTP
             }
             $proxy_auth = $config->getString('proxy.auth', false);
             if ($proxy_auth !== false) {
-                $context['http']['header'] = "Proxy-Authorization: Basic".base64_encode($proxy_auth);
+                $context['http']['header'] = "Proxy-Authorization: Basic ".base64_encode($proxy_auth);
             }
             if (!isset($context['http']['request_fulluri'])) {
                 $context['http']['request_fulluri'] = true;
@@ -440,7 +450,7 @@ class HTTP
         }
 
         $context = stream_context_create($context);
-        $data = file_get_contents($url, false, $context);
+        $data = @file_get_contents($url, false, $context);
         if ($data === false) {
             $error = error_get_last();
             throw new \SimpleSAML_Error_Exception('Error fetching '.var_export($url, true).':'.
@@ -591,8 +601,7 @@ class HTTP
         if (preg_match('#^https?://.*/?$#D', $baseURL, $matches)) {
             // full URL in baseurlpath, override local server values
             return rtrim($baseURL, '/').'/';
-        } elseif (
-            (preg_match('#^/?([^/]?.*/)$#D', $baseURL, $matches)) ||
+        } elseif ((preg_match('#^/?([^/]?.*/)$#D', $baseURL, $matches)) ||
             (preg_match('#^\*(.*)/$#D', $baseURL, $matches)) ||
             ($baseURL === '')
         ) {
@@ -752,6 +761,8 @@ class HTTP
         $cfg = \SimpleSAML_Configuration::getInstance();
         $baseDir = $cfg->getBaseDir();
         $cur_path = realpath($_SERVER['SCRIPT_FILENAME']);
+        // make sure we got a string from realpath()
+        $cur_path = is_string($cur_path) ? $cur_path : '';
         // find the path to the current script relative to the www/ directory of SimpleSAMLphp
         $rel_path = str_replace($baseDir.'www'.DIRECTORY_SEPARATOR, '', $cur_path);
         // convert that relative path to an HTTP query
@@ -774,15 +785,25 @@ class HTTP
              *   directory of SimpleSAMLphp, the URI does not contain its relative path, and $uri_pos is false.
              *
              * It doesn't matter which one of those cases we have. We just know we can't apply our base URL to the
-             * current URI, so we need to build it back from the PHP environment.
+             * current URI, so we need to build it back from the PHP environment, unless we have a base URL specified
+             * for this case in the configuration. First, check if that's the case.
              */
-            $protocol = 'http';
-            $protocol .= (self::getServerHTTPS()) ? 's' : '';
-            $protocol .= '://';
 
-            $hostname = self::getServerHost();
-            $port = self::getServerPort();
-            return $protocol.$hostname.$port.$_SERVER['REQUEST_URI'];
+            /** @var \SimpleSAML_Configuration $appcfg */
+            $appcfg = $cfg->getConfigItem('application', null);
+            $appurl = ($appcfg instanceof \SimpleSAML_Configuration) ? $appcfg->getString('baseURL', '') : '';
+            if (!empty($appurl)) {
+                $protocol = parse_url($appurl, PHP_URL_SCHEME);
+                $hostname = parse_url($appurl, PHP_URL_HOST);
+                $port = parse_url($appurl, PHP_URL_PORT);
+                $port = !empty($port) ? ':'.$port : '';
+            } else { // no base URL specified for app, just use the current URL
+                $protocol = 'http';
+                $protocol .= (self::getServerHTTPS()) ? 's' : '';
+                $hostname = self::getServerHost();
+                $port = self::getServerPort();
+            }
+            return $protocol.'://'.$hostname.$port.$_SERVER['REQUEST_URI'];
         }
 
         return self::getBaseURL().$rel_path.substr($_SERVER['REQUEST_URI'], $uri_pos + strlen($url_path));
@@ -947,7 +968,7 @@ class HTTP
 
     /**
      * This function redirects to the specified URL after performing the appropriate security checks on it.
-     * Particularly, it will make sure that the provided URL is allowed by the 'redirect.trustedsites' directive in the
+     * Particularly, it will make sure that the provided URL is allowed by the 'trusted.url.domains' directive in the
      * configuration.
      *
      * If the aforementioned option is not set or the URL does correspond to a trusted site, it performs a redirection
