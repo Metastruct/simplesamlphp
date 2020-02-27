@@ -1,21 +1,24 @@
 <?php
 
+declare(strict_types=1);
+
+namespace SimpleSAML\Error;
+
 /**
  * Exception which will show a page telling the user
  * that we don't know what to do.
  *
  * @package SimpleSAMLphp
  */
-class SimpleSAML_Error_NoState extends SimpleSAML_Error_Error
+
+class NoState extends Error
 {
-
-
     /**
      * Create the error
      */
     public function __construct()
     {
-        $this->includeTemplate = 'core:no_state.tpl.php';
+        $this->includeTemplate = 'core:no_state.twig';
         parent::__construct('NOSTATE');
     }
 }

@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 namespace SimpleSAML\Utils;
 
 /**
@@ -8,7 +11,6 @@ namespace SimpleSAML\Utils;
  */
 class Net
 {
-
     /**
      * Check whether an IP address is part of a CIDR.
      *
@@ -23,7 +25,7 @@ class Net
      * @author Brook Schofield, GÉANT
      * @author Jaime Perez, UNINETT AS <jaime.perez@uninett.no>
      */
-    public static function ipCIDRcheck($cidr, $ip = null)
+    public static function ipCIDRcheck(string $cidr, string $ip = null): bool
     {
         if ($ip === null) {
             $ip = $_SERVER['REMOTE_ADDR'];
@@ -35,8 +37,8 @@ class Net
         list ($net, $mask) = explode('/', $cidr);
         $mask = intval($mask);
 
-        $ip_ip = array();
-        $ip_net = array();
+        $ip_ip = [];
+        $ip_net = [];
         if (strstr($ip, ':') || strstr($net, ':')) {
             // Validate IPv6 with inet_pton, convert to hex with bin2hex
             // then store as a long with hexdec
@@ -73,8 +75,8 @@ class Net
 
             $ip_mask = ~((1 << (32 - $iteration_mask)) - 1);
 
-            $ip_net_mask = $ip_net[$i] & $ip_mask;
-            $ip_ip_mask = $ip_ip[$i] & $ip_mask;
+            $ip_net_mask = intval($ip_net[$i]) & $ip_mask;
+            $ip_ip_mask = intval($ip_ip[$i]) & $ip_mask;
 
             if ($ip_ip_mask != $ip_net_mask) {
                 return false;

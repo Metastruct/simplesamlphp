@@ -1,4 +1,9 @@
 <?php
+
+declare(strict_types=1);
+
+namespace SimpleSAML\Error;
+
 /**
  * Exception indicating wrong password given by user.
  *
@@ -6,7 +11,7 @@
  * @package SimpleSAMLphp_base
  *
  */
-class SimpleSAML_Error_InvalidCredential extends SimpleSAML_Error_User
-{
 
+class InvalidCredential extends User
+{
 }

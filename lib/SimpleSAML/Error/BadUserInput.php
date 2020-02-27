@@ -1,4 +1,9 @@
 <?php
+
+declare(strict_types=1);
+
+namespace SimpleSAML\Error;
+
 /**
  * Exception indicating illegal innput from user.
  *
@@ -6,7 +11,7 @@
  * @package SimpleSAMLphp_base
  *
  */
-class SimpleSAML_Error_BadUserInput extends SimpleSAML_Error_User
-{
 
+class BadUserInput extends User
+{
 }

@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 namespace SimpleSAML\Utils;
 
 /**
@@ -8,7 +11,6 @@ namespace SimpleSAML\Utils;
  */
 class Arrays
 {
-
     /**
      * Put a non-array variable into an array.
      *
@@ -21,9 +23,9 @@ class Arrays
      * @author Andreas Solberg, UNINETT AS <andreas.solberg@uninett.no>
      * @author Jaime Perez, UNINETT AS <jaime.perez@uninett.no>
      */
-    public static function arrayize($data, $index = 0)
+    public static function arrayize($data, $index = 0): array
     {
-        return (is_array($data)) ? $data : array($index => $data);
+        return (is_array($data)) ? $data : [$index => $data];
     }
 
 
@@ -32,17 +34,13 @@ class Arrays
      *
      * @param array $array The two-dimensional array to transpose.
      *
-     * @return mixed The transposed array, or false if $array is not a valid two-dimensional array.
+     * @return array|false The transposed array, or false if $array is not a valid two-dimensional array.
      *
      * @author Andreas Solberg, UNINETT AS <andreas.solberg@uninett.no>
      */
-    public static function transpose($array)
+    public static function transpose(array $array)
     {
-        if (!is_array($array)) {
-            return false;
-        }
-
-        $ret = array();
+        $ret = [];
         foreach ($array as $k1 => $a2) {
             if (!is_array($a2)) {
                 return false;
@@ -50,7 +48,7 @@ class Arrays
 
             foreach ($a2 as $k2 => $v) {
                 if (!array_key_exists($k2, $ret)) {
-                    $ret[$k2] = array();
+                    $ret[$k2] = [];
                 }
                 $ret[$k2][$k1] = $v;
             }

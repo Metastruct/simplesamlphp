@@ -1,22 +1,26 @@
 <?php
 
+declare(strict_types=1);
+
 namespace SimpleSAML\IdP;
+
+use SimpleSAML\Error;
+use SimpleSAML\IdP;
 
 /**
  * Interface that all logout handlers must implement.
  *
  * @package SimpleSAMLphp
  */
+
 interface LogoutHandlerInterface
 {
-
-
     /**
      * Initialize this logout handler.
      *
-     * @param \SimpleSAML_IdP $idp The IdP we are logging out from.
+     * @param \SimpleSAML\IdP $idp The IdP we are logging out from.
      */
-    public function __construct(\SimpleSAML_IdP $idp);
+    public function __construct(IdP $idp);
 
 
     /**
@@ -25,9 +29,10 @@ interface LogoutHandlerInterface
      * This function must never return.
      *
      * @param array &$state The logout state.
-     * @param string|null $assocId The association that started the logout.
+     * @param string $assocId The association that started the logout.
+     * @return void
      */
-    public function startLogout(array &$state, $assocId);
+    public function startLogout(array &$state, string $assocId): void;
 
 
     /**
@@ -37,7 +42,8 @@ interface LogoutHandlerInterface
      *
      * @param string $assocId The association that is terminated.
      * @param string|null $relayState The RelayState from the start of the logout.
-     * @param \SimpleSAML_Error_Exception|null $error The error that occurred during session termination (if any).
+     * @param \SimpleSAML\Error\Exception|null $error The error that occurred during session termination (if any).
+     * @return void
      */
-    public function onResponse($assocId, $relayState, \SimpleSAML_Error_Exception $error = null);
+    public function onResponse(string $assocId, ?string $relayState, Error\Exception $error = null): void;
 }

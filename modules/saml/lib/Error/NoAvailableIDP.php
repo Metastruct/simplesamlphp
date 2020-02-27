@@ -1,16 +1,18 @@
 <?php
+
+declare(strict_types=1);
+
+namespace SimpleSAML\Module\saml\Error;
+
+use SAML2\Constants;
+
 /**
  * A SAML error indicating that none of the requested IdPs can be used.
  *
  * @author Jaime Pérez Crespo, UNINETT AS <jaime.perez@uninett.no>
  * @package SimpleSAMLphp
  */
-
-namespace SimpleSAML\Module\saml\Error;
-
-use SAML2\Constants;
-
-class NoAvailableIDP extends \sspmod_saml_Error
+class NoAvailableIDP extends \SimpleSAML\Module\saml\Error
 {
     /**
      * NoAvailableIDP error constructor.
@@ -21,7 +23,7 @@ class NoAvailableIDP extends \sspmod_saml_Error
      * @param string|null $message A short message explaining why this error happened.
      * @param \Exception|null $cause An exception that caused this error.
      */
-    public function __construct($responsible, $message = null, \Exception $cause = null)
+    public function __construct(string $responsible, string $message = null, \Exception $cause = null)
     {
         parent::__construct($responsible, Constants::STATUS_NO_AVAILABLE_IDP, $message, $cause);
     }

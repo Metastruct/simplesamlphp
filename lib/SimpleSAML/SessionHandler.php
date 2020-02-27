@@ -12,12 +12,12 @@
  * @package SimpleSAMLphp
  */
 
+declare(strict_types=1);
+
 namespace SimpleSAML;
 
 abstract class SessionHandler
 {
-
-
     /**
      * This static variable contains a reference to the current
      * instance of the session handler. This variable will be NULL if
@@ -25,7 +25,7 @@ abstract class SessionHandler
      *
      * @var \SimpleSAML\SessionHandler
      */
-    protected static $sessionHandler = null;
+    protected static $sessionHandler;
 
 
     /**
@@ -34,8 +34,10 @@ abstract class SessionHandler
      * to this function.
      *
      * @return \SimpleSAML\SessionHandler The current session handler.
+     *
+     * @throws \Exception If we cannot instantiate the session handler.
      */
-    public static function getSessionHandler()
+    public static function getSessionHandler(): SessionHandler
     {
         if (self::$sessionHandler === null) {
             self::createSessionHandler();
@@ -60,7 +62,7 @@ abstract class SessionHandler
      *
      * @return string The new session id.
      */
-    abstract public function newSessionId();
+    abstract public function newSessionId(): string;
 
 
     /**
@@ -68,7 +70,7 @@ abstract class SessionHandler
      *
      * @return string|null The session id saved in the cookie or null if no session cookie was set.
      */
-    abstract public function getCookieSessionId();
+    abstract public function getCookieSessionId(): ?string;
 
 
     /**
@@ -76,15 +78,16 @@ abstract class SessionHandler
      *
      * @return string The session cookie name.
      */
-    abstract public function getSessionCookieName();
+    abstract public function getSessionCookieName(): string;
 
 
     /**
      * Save the session.
      *
-     * @param \SimpleSAML_Session $session The session object we should save.
+     * @param \SimpleSAML\Session $session The session object we should save.
+     * @return void
      */
-    abstract public function saveSession(\SimpleSAML_Session $session);
+    abstract public function saveSession(Session $session): void;
 
 
     /**
@@ -92,9 +95,9 @@ abstract class SessionHandler
      *
      * @param string|null $sessionId The ID of the session we should load, or null to use the default.
      *
-     * @return \SimpleSAML_Session|null The session object, or null if it doesn't exist.
+     * @return \SimpleSAML\Session|null The session object, or null if it doesn't exist.
      */
-    abstract public function loadSession($sessionId = null);
+    abstract public function loadSession(?string $sessionId): ?Session;
 
 
     /**
@@ -104,7 +107,7 @@ abstract class SessionHandler
      *
      * @return bool True if it was set, false if not.
      */
-    abstract public function hasSessionCookie();
+    abstract public function hasSessionCookie(): bool;
 
 
     /**
@@ -113,27 +116,31 @@ abstract class SessionHandler
      * @param string $sessionName The name of the session.
      * @param string|null $sessionID The session ID to use. Set to null to delete the cookie.
      * @param array|null $cookieParams Additional parameters to use for the session cookie.
+     * @return void
      *
      * @throws \SimpleSAML\Error\CannotSetCookie If we can't set the cookie.
      */
-    abstract public function setCookie($sessionName, $sessionID, array $cookieParams = null);
+    abstract public function setCookie(string $sessionName, ?string $sessionID, array $cookieParams = null): void;
 
 
     /**
      * Initialize the session handler.
      *
      * This function creates an instance of the session handler which is
-     * selected in the 'session.handler' configuration directive. If no
+     * selected in the 'store.type' configuration directive. If no
      * session handler is selected, then we will fall back to the default
      * PHP session handler.
+     *
+     * @return void
+     *
+     * @throws \Exception If we cannot instantiate the session handler.
      */
-    private static function createSessionHandler()
+    private static function createSessionHandler(): void
     {
-        $store = \SimpleSAML\Store::getInstance();
+        $store = Store::getInstance();
         if ($store === false) {
             self::$sessionHandler = new SessionHandlerPHP();
         } else {
-            /** @var \SimpleSAML\Store $store At this point, $store can only be an object */
             self::$sessionHandler = new SessionHandlerStore($store);
         }
     }
@@ -145,16 +152,17 @@ abstract class SessionHandler
      * @return array An array with the cookie parameters.
      * @link http://www.php.net/manual/en/function.session-get-cookie-params.php
      */
-    public function getCookieParams()
+    public function getCookieParams(): array
     {
-        $config = \SimpleSAML_Configuration::getInstance();
+        $config = Configuration::getInstance();
 
-        return array(
+        return [
             'lifetime' => $config->getInteger('session.cookie.lifetime', 0),
             'path'     => $config->getString('session.cookie.path', '/'),
             'domain'   => $config->getString('session.cookie.domain', null),
             'secure'   => $config->getBoolean('session.cookie.secure', false),
+            'samesite' => $config->getString('session.cookie.samesite', null),
             'httponly' => true,
-        );
+        ];
     }
 }

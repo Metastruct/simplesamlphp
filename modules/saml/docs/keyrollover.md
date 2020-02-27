@@ -11,7 +11,7 @@ First you must create the new key that you are going to use.
 To create a self signed certificate, you may use the following command:
 
     cd cert
-    openssl req -newkey rsa:2048 -new -x509 -days 3652 -nodes -out new.crt -keyout new.pem
+    openssl req -newkey rsa:3072 -new -x509 -days 3652 -nodes -out new.crt -keyout new.pem
 
 
 Add the new key to SimpleSAMLphp
@@ -19,7 +19,7 @@ Add the new key to SimpleSAMLphp
 
 Where you add the new key depends on whether you are doing key rollover for a service provider or an identity provider.
 If you are doing key rollover for a service provider, the new key must be added to `config/authsources.php`.
-To do key rollover for an identity provider, you must add the new key to `metadata/saml20-idp-hosted.php` and/or `metadata/shib13-idp-hosted.php`.
+To do key rollover for an identity provider, you must add the new key to `metadata/saml20-idp-hosted.php`.
 If you are changing the keys for both an service provider and identity provider at the same time, you must update both locations.
 
 The new certificate and key is added to the configuration with the prefix `new_`:

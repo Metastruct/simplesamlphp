@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace SimpleSAML\Test\Utils;
 
+use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use SimpleSAML\Utils\Attributes;
 
@@ -12,51 +15,19 @@ use SimpleSAML\Utils\Attributes;
  */
 class AttributesTest extends TestCase
 {
-
-    /**
-     * Test the getExpectedAttribute() method with invalid attributes array.
-     */
-    public function testGetExpectedAttributeInvalidAttributesArray()
-    {
-        // check with empty array as input
-        $attributes = 'string';
-        $expected = 'string';
-        $this->setExpectedException(
-            'InvalidArgumentException',
-            'The attributes array is not an array, it is: '.print_r($attributes, true).'.'
-        );
-        Attributes::getExpectedAttribute($attributes, $expected);
-    }
-
-
-    /**
-     * Test the getExpectedAttributeMethod() method with invalid expected attribute parameter.
-     */
-    public function testGetExpectedAttributeInvalidAttributeName()
-    {
-        // check with invalid attribute name
-        $attributes = array();
-        $expected = false;
-        $this->setExpectedException(
-            'InvalidArgumentException',
-            'The expected attribute is not a string, it is: '.print_r($expected, true).'.'
-        );
-        Attributes::getExpectedAttribute($attributes, $expected);
-    }
-
-
     /**
      * Test the getExpectedAttributeMethod() method with a non-normalized attributes array.
+     * @return void
      */
     public function testGetExpectedAttributeNonNormalizedArray()
     {
         // check with non-normalized attributes array
-        $attributes = array(
+        $attributes = [
             'attribute' => 'value',
-        );
+        ];
         $expected = 'attribute';
-        $this->setExpectedException(
-            'InvalidArgumentException',
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage(
             'The attributes array is not normalized, values should be arrays.'
         );
         Attributes::getExpectedAttribute($attributes, $expected);
@@ -65,55 +36,54 @@ class AttributesTest extends TestCase
 
     /**
      * Test the getExpectedAttribute() method with valid input but missing expected attribute.
+     * @return void
      */
     public function testGetExpectedAttributeMissingAttribute()
     {
         // check missing attribute
-        $attributes = array(
-            'attribute' => array('value'),
-        );
+        $attributes = [
+            'attribute' => ['value'],
+        ];
         $expected = 'missing';
-        $this->setExpectedException(
-            'SimpleSAML_Error_Exception',
-            "No such attribute '".$expected."' found."
-        );
+        $this->expectException(\SimpleSAML\Error\Exception::class);
+        $this->expectExceptionMessage("No such attribute '" . $expected . "' found.");
         Attributes::getExpectedAttribute($attributes, $expected);
     }
 
 
     /**
      * Test the getExpectedAttribute() method with an empty attribute.
+     * @return void
      */
     public function testGetExpectedAttributeEmptyAttribute()
     {
         // check empty attribute
-        $attributes = array(
-            'attribute' => array(),
-        );
+        $attributes = [
+            'attribute' => [],
+        ];
         $expected = 'attribute';
-        $this->setExpectedException(
-            'SimpleSAML_Error_Exception',
-            "Empty attribute '".$expected."'.'"
-        );
+        $this->expectException(\SimpleSAML\Error\Exception::class);
+        $this->expectExceptionMessage("Empty attribute '" . $expected . "'.'");
         Attributes::getExpectedAttribute($attributes, $expected);
     }
 
 
     /**
      * Test the getExpectedAttributeMethod() method with multiple values (not being allowed).
+     * @return void
      */
     public function testGetExpectedAttributeMultipleValues()
     {
         // check attribute with more than value, that being not allowed
-        $attributes = array(
-            'attribute' => array(
+        $attributes = [
+            'attribute' => [
                 'value1',
                 'value2',
-            ),
-        );
+            ],
+        ];
         $expected = 'attribute';
-        $this->setExpectedException(
-            'SimpleSAML_Error_Exception',
+        $this->expectException(\SimpleSAML\Error\Exception::class);
+        $this->expectExceptionMessage(
             'More than one value found for the attribute, multiple values not allowed.'
         );
         Attributes::getExpectedAttribute($attributes, $expected);
@@ -122,72 +92,66 @@ class AttributesTest extends TestCase
 
     /**
      * Test that the getExpectedAttribute() method successfully obtains values from the attributes array.
+     * @return void
      */
     public function testGetExpectedAttribute()
     {
         // check one value
         $value = 'value';
-        $attributes = array(
-            'attribute' => array($value),
-        );
+        $attributes = [
+            'attribute' => [$value],
+        ];
         $expected = 'attribute';
         $this->assertEquals($value, Attributes::getExpectedAttribute($attributes, $expected));
 
         // check multiple (allowed) values
         $value = 'value';
-        $attributes = array(
-            'attribute' => array($value, 'value2', 'value3'),
-        );
+        $attributes = [
+            'attribute' => [$value, 'value2', 'value3'],
+        ];
         $expected = 'attribute';
         $this->assertEquals($value, Attributes::getExpectedAttribute($attributes, $expected, true));
     }
 
 
     /**
-     * Test the normalizeAttributesArray() function with input not being an array
-     *
-     * @expectedException \InvalidArgumentException
-     */
-    public function testNormalizeAttributesArrayBadInput()
-    {
-        Attributes::normalizeAttributesArray('string');
-    }
-
-    /**
      * Test the normalizeAttributesArray() function with an array with non-string attribute names.
-     *
-     * @expectedException \InvalidArgumentException
+     * @return void
      */
     public function testNormalizeAttributesArrayBadKeys()
     {
-        Attributes::normalizeAttributesArray(array('attr1' => 'value1', 1 => 'value2'));
+        $this->expectException(InvalidArgumentException::class);
+        Attributes::normalizeAttributesArray(['attr1' => 'value1', 1 => 'value2']);
     }
+
 
     /**
      * Test the normalizeAttributesArray() function with an array with non-string attribute values.
-     *
-     * @expectedException \InvalidArgumentException
+     * @return void
      */
     public function testNormalizeAttributesArrayBadValues()
     {
-        Attributes::normalizeAttributesArray(array('attr1' => 'value1', 'attr2' => 0));
+        $this->expectException(InvalidArgumentException::class);
+        Attributes::normalizeAttributesArray(['attr1' => 'value1', 'attr2' => 0]);
     }
+
 
     /**
      * Test the normalizeAttributesArray() function.
+     * @return void
      */
     public function testNormalizeAttributesArray()
     {
-        $attributes = array(
+        $attributes = [
             'key1' => 'value1',
-            'key2' => array('value2', 'value3'),
+            'key2' => ['value2', 'value3'],
             'key3' => 'value1'
-        );
-        $expected = array(
-            'key1' => array('value1'),
-            'key2' => array('value2', 'value3'),
-            'key3' => array('value1')
-        );
+        ];
+        $expected = [
+            'key1' => ['value1'],
+            'key2' => ['value2', 'value3'],
+            'key3' => ['value1']
+        ];
         $this->assertEquals(
             $expected,
             Attributes::normalizeAttributesArray($attributes),
@@ -198,18 +162,19 @@ class AttributesTest extends TestCase
 
     /**
      * Test the getAttributeNamespace() function.
+     * @return void
      */
     public function testNamespacedAttributes()
     {
         // test for only the name
         $this->assertEquals(
-            array('default', 'name'),
+            ['default', 'name'],
             Attributes::getAttributeNamespace('name', 'default')
         );
 
         // test for a given namespace and multiple '/'
         $this->assertEquals(
-            array('some/namespace', 'name'),
+            ['some/namespace', 'name'],
             Attributes::getAttributeNamespace('some/namespace/name', 'default')
         );
     }

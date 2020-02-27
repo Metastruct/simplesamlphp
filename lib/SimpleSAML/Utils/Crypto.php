@@ -1,15 +1,21 @@
 <?php
 
+declare(strict_types=1);
+
 namespace SimpleSAML\Utils;
+
+use SimpleSAML\Configuration;
+use SimpleSAML\Error;
+use Webmozart\Assert\Assert;
 
 /**
  * A class for cryptography-related functions.
  *
  * @package SimpleSAMLphp
  */
+
 class Crypto
 {
-
     /**
      * Decrypt data using AES-256-CBC and the key provided as a parameter.
      *
@@ -18,17 +24,12 @@ class Crypto
      *
      * @return string The decrypted data.
      * @throws \InvalidArgumentException If $ciphertext is not a string.
-     * @throws \SimpleSAML_Error_Exception If the openssl module is not loaded.
+     * @throws Error\Exception If the openssl module is not loaded.
      *
      * @see \SimpleSAML\Utils\Crypto::aesDecrypt()
      */
-    private static function _aesDecrypt($ciphertext, $secret)
+    private static function aesDecryptInternal(string $ciphertext, string $secret): string
     {
-        if (!is_string($ciphertext)) {
-            throw new \InvalidArgumentException(
-                'Input parameter "$ciphertext" must be a string with more than 48 characters.'
-            );
-        }
         /** @var int $len */
         $len = mb_strlen($ciphertext, '8bit');
         if ($len < 48) {
@@ -37,7 +38,7 @@ class Crypto
             );
         }
         if (!function_exists("openssl_decrypt")) {
-            throw new \SimpleSAML_Error_Exception("The openssl PHP module is not loaded.");
+            throw new Error\Exception("The openssl PHP module is not loaded.");
         }
 
         // derive encryption and authentication keys from the secret
@@ -48,7 +49,7 @@ class Crypto
         $msg  = mb_substr($ciphertext, 48, $len - 48, '8bit');
 
         // authenticate the ciphertext
-        if (self::secureCompare(hash_hmac('sha256', $iv.$msg, substr($key, 64, 64), true), $hmac)) {
+        if (self::secureCompare(hash_hmac('sha256', $iv . $msg, substr($key, 64, 64), true), $hmac)) {
             $plaintext = openssl_decrypt(
                 $msg,
                 'AES-256-CBC',
@@ -62,7 +63,7 @@ class Crypto
             }
         }
 
-        throw new \SimpleSAML_Error_Exception("Failed to decrypt ciphertext.");
+        throw new Error\Exception("Failed to decrypt ciphertext.");
     }
 
 
@@ -73,14 +74,14 @@ class Crypto
      *
      * @return string The decrypted data.
      * @throws \InvalidArgumentException If $ciphertext is not a string.
-     * @throws \SimpleSAML_Error_Exception If the openssl module is not loaded.
+     * @throws Error\Exception If the openssl module is not loaded.
      *
      * @author Andreas Solberg, UNINETT AS <andreas.solberg@uninett.no>
      * @author Jaime Perez, UNINETT AS <jaime.perez@uninett.no>
      */
-    public static function aesDecrypt($ciphertext)
+    public static function aesDecrypt(string $ciphertext): string
     {
-        return self::_aesDecrypt($ciphertext, Config::getSecretSalt());
+        return self::aesDecryptInternal($ciphertext, Config::getSecretSalt());
     }
 
 
@@ -92,18 +93,14 @@ class Crypto
      *
      * @return string An HMAC of the encrypted data, the IV and the encrypted data, concatenated.
      * @throws \InvalidArgumentException If $data is not a string.
-     * @throws \SimpleSAML_Error_Exception If the openssl module is not loaded.
+     * @throws Error\Exception If the openssl module is not loaded.
      *
      * @see \SimpleSAML\Utils\Crypto::aesEncrypt()
      */
-    private static function _aesEncrypt($data, $secret)
+    private static function aesEncryptInternal(string $data, string $secret): string
     {
-        if (!is_string($data)) {
-            throw new \InvalidArgumentException('Input parameter "$data" must be a string.');
-        }
-
         if (!function_exists("openssl_encrypt")) {
-            throw new \SimpleSAML_Error_Exception('The openssl PHP module is not loaded.');
+            throw new Error\Exception('The openssl PHP module is not loaded.');
         }
 
         // derive encryption and authentication keys from the secret
@@ -113,7 +110,6 @@ class Crypto
         $iv = openssl_random_pseudo_bytes(16);
 
         // encrypt the message
-        /** @var string|false $ciphertext */
         $ciphertext = openssl_encrypt(
             $data,
             'AES-256-CBC',
@@ -123,11 +119,11 @@ class Crypto
         );
 
         if ($ciphertext === false) {
-            throw new \SimpleSAML_Error_Exception("Failed to encrypt plaintext.");
+            throw new Error\Exception("Failed to encrypt plaintext.");
         }
 
         // return the ciphertext with proper authentication
-        return hash_hmac('sha256', $iv.$ciphertext, substr($key, 64, 64), true).$iv.$ciphertext;
+        return hash_hmac('sha256', $iv . $ciphertext, substr($key, 64, 64), true) . $iv . $ciphertext;
     }
 
 
@@ -138,14 +134,14 @@ class Crypto
      *
      * @return string An HMAC of the encrypted data, the IV and the encrypted data, concatenated.
      * @throws \InvalidArgumentException If $data is not a string.
-     * @throws \SimpleSAML_Error_Exception If the openssl module is not loaded.
+     * @throws Error\Exception If the openssl module is not loaded.
      *
      * @author Andreas Solberg, UNINETT AS <andreas.solberg@uninett.no>
      * @author Jaime Perez, UNINETT AS <jaime.perez@uninett.no>
      */
-    public static function aesEncrypt($data)
+    public static function aesEncrypt(string $data): string
     {
-        return self::_aesEncrypt($data, Config::getSecretSalt());
+        return self::aesEncryptInternal($data, Config::getSecretSalt());
     }
 
 
@@ -157,11 +153,11 @@ class Crypto
      * @return string The same data encoded in PEM format.
      * @see RFC7648 for known types and PEM format specifics.
      */
-    public static function der2pem($der, $type = 'CERTIFICATE')
+    public static function der2pem(string $der, string $type = 'CERTIFICATE'): string
     {
-        return "-----BEGIN ".$type."-----\n".
-               chunk_split(base64_encode($der), 64, "\n").
-               "-----END ".$type."-----\n";
+        return "-----BEGIN " . $type . "-----\n" .
+            chunk_split(base64_encode($der), 64, "\n") .
+            "-----END " . $type . "-----\n";
     }
 
 
@@ -176,7 +172,7 @@ class Crypto
      * - 'PEM': Data for the private key, in PEM-format.
      * - 'password': Password for the private key.
      *
-     * @param \SimpleSAML_Configuration $metadata The metadata array the private key should be loaded from.
+     * @param \SimpleSAML\Configuration $metadata The metadata array the private key should be loaded from.
      * @param bool                      $required Whether the private key is required. If this is true, a
      * missing key will cause an exception. Defaults to false.
      * @param string                    $prefix The prefix which should be used when reading from the metadata
@@ -186,23 +182,23 @@ class Crypto
      *
      * @return array|NULL Extracted private key, or NULL if no private key is present.
      * @throws \InvalidArgumentException If $required is not boolean or $prefix is not a string.
-     * @throws \SimpleSAML_Error_Exception If no private key is found in the metadata, or it was not possible to load
+     * @throws Error\Exception If no private key is found in the metadata, or it was not possible to load
      *     it.
      *
      * @author Andreas Solberg, UNINETT AS <andreas.solberg@uninett.no>
      * @author Olav Morken, UNINETT AS <olav.morken@uninett.no>
      */
-    public static function loadPrivateKey(\SimpleSAML_Configuration $metadata, $required = false, $prefix = '', $full_path = false)
-    {
-        if (!is_bool($required) || !is_string($prefix) || !is_bool($full_path)) {
-            throw new \InvalidArgumentException('Invalid input parameters.');
-        }
-
-        $file = $metadata->getString($prefix.'privatekey', null);
+    public static function loadPrivateKey(
+        Configuration $metadata,
+        bool $required = false,
+        string $prefix = '',
+        bool $full_path = false
+    ): ?array {
+        $file = $metadata->getString($prefix . 'privatekey', null);
         if ($file === null) {
             // no private key found
             if ($required) {
-                throw new \SimpleSAML_Error_Exception('No private key found in metadata.');
+                throw new Error\Exception('No private key found in metadata.');
             } else {
                 return null;
             }
@@ -214,16 +210,13 @@ class Crypto
 
         $data = @file_get_contents($file);
         if ($data === false) {
-            throw new \SimpleSAML_Error_Exception('Unable to load private key from file "'.$file.'"');
+            throw new Error\Exception('Unable to load private key from file "' . $file . '"');
         }
 
-        $ret = array(
+        $ret = [
             'PEM' => $data,
-        );
-
-        if ($metadata->hasValue($prefix.'privatekey_pass')) {
-            $ret['password'] = $metadata->getString($prefix.'privatekey_pass');
-        }
+            'password' => $metadata->getString($prefix . 'privatekey_pass', null),
+        ];
 
         return $ret;
     }
@@ -237,37 +230,29 @@ class Crypto
      * It will search for the following elements in the metadata:
      * - 'certData': The certificate as a base64-encoded string.
      * - 'certificate': A file with a certificate or public key in PEM-format.
-     * - 'certFingerprint': The fingerprint of the certificate. Can be a single fingerprint, or an array of multiple
-     * valid fingerprints. (deprecated)
      *
      * This function will return an array with these elements:
      * - 'PEM': The public key/certificate in PEM-encoding.
      * - 'certData': The certificate data, base64 encoded, on a single line. (Only present if this is a certificate.)
-     * - 'certFingerprint': Array of valid certificate fingerprints. (Deprecated. Only present if this is a
-     *   certificate.)
      *
-     * @param \SimpleSAML_Configuration $metadata The metadata.
-     * @param bool                      $required Whether the private key is required. If this is TRUE, a missing key
+     * @param \SimpleSAML\Configuration $metadata The metadata.
+     * @param bool                      $required Whether the public key is required. If this is TRUE, a missing key
      *     will cause an exception. Default is FALSE.
      * @param string                    $prefix The prefix which should be used when reading from the metadata array.
      *     Defaults to ''.
      *
      * @return array|NULL Public key or certificate data, or NULL if no public key or certificate was found.
-     * @throws \InvalidArgumentException If $metadata is not an instance of \SimpleSAML_Configuration, $required is not
+     * @throws \InvalidArgumentException If $metadata is not an instance of \SimpleSAML\Configuration, $required is not
      *     boolean or $prefix is not a string.
-     * @throws \SimpleSAML_Error_Exception If no private key is found in the metadata, or it was not possible to load
+     * @throws Error\Exception If no public key is found in the metadata, or it was not possible to load
      *     it.
      *
      * @author Andreas Solberg, UNINETT AS <andreas.solberg@uninett.no>
      * @author Olav Morken, UNINETT AS <olav.morken@uninett.no>
      * @author Lasse Birnbaum Jensen
      */
-    public static function loadPublicKey(\SimpleSAML_Configuration $metadata, $required = false, $prefix = '')
+    public static function loadPublicKey(Configuration $metadata, bool $required = false, string $prefix = ''): ?array
     {
-        if (!is_bool($required) || !is_string($prefix)) {
-            throw new \InvalidArgumentException('Invalid input parameters.');
-        }
-
         $keys = $metadata->getPublicKeys(null, false, $prefix);
         if (!empty($keys)) {
             foreach ($keys as $key) {
@@ -278,38 +263,20 @@ class Crypto
                     continue;
                 }
                 $certData = $key['X509Certificate'];
-                $pem = "-----BEGIN CERTIFICATE-----\n".
-                    chunk_split($certData, 64).
+                $pem = "-----BEGIN CERTIFICATE-----\n" .
+                    chunk_split($certData, 64) .
                     "-----END CERTIFICATE-----\n";
-                $certFingerprint = strtolower(sha1(base64_decode($certData)));
-
-                return array(
+                return [
                     'certData'        => $certData,
                     'PEM'             => $pem,
-                    'certFingerprint' => array($certFingerprint),
-                );
+                ];
             }
             // no valid key found
-        } elseif ($metadata->hasValue($prefix.'certFingerprint')) {
-            // we only have a fingerprint available
-            $fps = $metadata->getArrayizeString($prefix.'certFingerprint');
-
-            // normalize fingerprint(s) - lowercase and no colons
-            foreach ($fps as &$fp) {
-                assert(is_string($fp));
-                $fp = strtolower(str_replace(':', '', $fp));
-            }
-
-            /*
-             * We can't build a full certificate from a fingerprint, and may as well return an array with only the
-             * fingerprint(s) immediately.
-             */
-            return array('certFingerprint' => $fps);
         }
 
         // no public key/certificate available
         if ($required) {
-            throw new \SimpleSAML_Error_Exception('No public key / certificate found in metadata.');
+            throw new Error\Exception('No public key / certificate found in metadata.');
         } else {
             return null;
         }
@@ -324,7 +291,7 @@ class Crypto
      * @throws \InvalidArgumentException If $pem is not encoded in PEM format.
      * @see RFC7648 for PEM format specifics.
      */
-    public static function pem2der($pem)
+    public static function pem2der(string $pem): string
     {
         $pem   = trim($pem);
         $begin = "-----BEGIN ";
@@ -349,47 +316,22 @@ class Crypto
      * This function hashes a password with a given algorithm.
      *
      * @param string $password The password to hash.
-     * @param string $algorithm The hashing algorithm, uppercase, optionally prepended with 'S' (salted). See
-     *     hash_algos() for a complete list of hashing algorithms.
-     * @param string $salt An optional salt to use.
      *
      * @return string The hashed password.
-     * @throws \InvalidArgumentException If the input parameters are not strings.
-     * @throws \SimpleSAML_Error_Exception If the algorithm specified is not supported.
+     * @throws \InvalidArgumentException If the input parameter is not a string.
+     * @throws Error\Exception If the algorithm specified is not supported.
      *
      * @see hash_algos()
      *
      * @author Dyonisius Visser, TERENA <visser@terena.org>
      * @author Jaime Perez, UNINETT AS <jaime.perez@uninett.no>
      */
-    public static function pwHash($password, $algorithm, $salt = null)
+    public static function pwHash(string $password): string
     {
-        if (!is_string($algorithm) || !is_string($password)) {
-            throw new \InvalidArgumentException('Invalid input parameters.');
+        if (!is_string($hash = password_hash($password, PASSWORD_DEFAULT))) {
+            throw new \InvalidArgumentException('Error while hashing password.');
         }
-
-        // hash w/o salt
-        if (in_array(strtolower($algorithm), hash_algos(), true)) {
-            $alg_str = '{'.str_replace('SHA1', 'SHA', $algorithm).'}'; // LDAP compatibility
-            $hash = hash(strtolower($algorithm), $password, true);
-            return $alg_str.base64_encode($hash);
-        }
-
-        // hash w/ salt
-        if ($salt === null) { // no salt provided, generate one
-            // default 8 byte salt, but 4 byte for LDAP SHA1 hashes
-            $bytes = ($algorithm == 'SSHA1') ? 4 : 8;
-            $salt = openssl_random_pseudo_bytes($bytes);
-        }
-
-        if ($algorithm[0] == 'S' && in_array(substr(strtolower($algorithm), 1), hash_algos(), true)) {
-            $alg = substr(strtolower($algorithm), 1); // 'sha256' etc
-            $alg_str = '{'.str_replace('SSHA1', 'SSHA', $algorithm).'}'; // LDAP compatibility
-            $hash = hash($alg, $password.$salt, true);
-            return $alg_str.base64_encode($hash.$salt);
-        }
-
-        throw new \SimpleSAML_Error_Exception('Hashing algorithm \''.strtolower($algorithm).'\' is not supported');
+        return $hash;
     }
 
 
@@ -404,24 +346,9 @@ class Crypto
      *
      * @return bool True if both strings are equal, false otherwise.
      */
-    public static function secureCompare($known, $user)
+    public static function secureCompare(string $known, string $user): bool
     {
-        if (function_exists('hash_equals')) {
-            // use hash_equals() if available (PHP >= 5.6)
-            return hash_equals($known, $user);
-        }
-
-        // compare manually in constant time
-        $len = mb_strlen($known, '8bit'); // see mbstring.func_overload
-        if ($len !== mb_strlen($user, '8bit')) {
-            return false; // length differs
-        }
-        $diff = 0;
-        for ($i = 0; $i < $len; $i++) {
-            $diff |= ord($known[$i]) ^ ord($user[$i]);
-        }
-        // if all the bytes in $a and $b are identical, $diff should be equal to 0
-        return $diff === 0;
+        return hash_equals($known, $user);
     }
 
 
@@ -433,39 +360,15 @@ class Crypto
      *
      * @return boolean True if the hash corresponds with the given password, false otherwise.
      * @throws \InvalidArgumentException If the input parameters are not strings.
-     * @throws \SimpleSAML_Error_Exception If the algorithm specified is not supported.
+     * @throws Error\Exception If the algorithm specified is not supported.
      *
      * @author Dyonisius Visser, TERENA <visser@terena.org>
      */
-    public static function pwValid($hash, $password)
+    public static function pwValid(string $hash, string $password): bool
     {
-        if (!is_string($hash) || !is_string($password)) {
-            throw new \InvalidArgumentException('Invalid input parameters.');
+        if (password_verify($password, $hash)) {
+            return true;
         }
-
-        // match algorithm string (e.g. '{SSHA256}', '{MD5}')
-        if (preg_match('/^{(.*?)}(.*)$/', $hash, $matches)) {
-            // LDAP compatibility
-            $alg = preg_replace('/^(S?SHA)$/', '${1}1', $matches[1]);
-
-            // hash w/o salt
-            if (in_array(strtolower($alg), hash_algos(), true)) {
-                return self::secureCompare($hash, self::pwHash($password, $alg));
-            }
-
-            // hash w/ salt
-            if ($alg[0] === 'S' && in_array(substr(strtolower($alg), 1), hash_algos(), true)) {
-                $php_alg = substr(strtolower($alg), 1);
-
-                // get hash length of this algorithm to learn how long the salt is
-                $hash_length = strlen(hash($php_alg, '', true));
-                $salt = substr(base64_decode($matches[2]), $hash_length);
-                return self::secureCompare($hash, self::pwHash($password, $alg, $salt));
-            }
-        } else {
-            return $hash === $password;
-        }
-
-        throw new \SimpleSAML_Error_Exception('Hashing algorithm \''.strtolower($alg).'\' is not supported');
+        return $hash === $password;
     }
 }

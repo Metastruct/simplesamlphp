@@ -1,20 +1,26 @@
 <?php
 
+declare(strict_types=1);
+
+namespace SimpleSAML\Error;
+
+use PDOException;
+
 /**
  * Class for saving normal exceptions for serialization.
  *
- * This class is used by the SimpleSAML_Auth_State class when it needs
+ * This class is used by the \SimpleSAML\Auth\State class when it needs
  * to serialize an exception which doesn't subclass the
- * SimpleSAML_Error_Exception class.
+ * \SimpleSAML\Error\Exception class.
  *
  * It creates a new exception which contains the backtrace and message
  * of the original exception.
  *
  * @package SimpleSAMLphp
  */
-class SimpleSAML_Error_UnserializableException extends SimpleSAML_Error_Exception
-{
 
+class UnserializableException extends Exception
+{
     /**
      * The classname of the original exception.
      *
@@ -26,9 +32,9 @@ class SimpleSAML_Error_UnserializableException extends SimpleSAML_Error_Exceptio
     /**
      * Create a serializable exception representing an unserializable exception.
      *
-     * @param Exception $original  The original exception.
+     * @param \Exception $original  The original exception.
      */
-    public function __construct(Exception $original)
+    public function __construct(\Exception $original)
     {
 
         $this->class = get_class($original);
@@ -36,7 +42,7 @@ class SimpleSAML_Error_UnserializableException extends SimpleSAML_Error_Exceptio
         $code = $original->getCode();
 
         if (!is_int($code)) {
-            // PDOException uses a string as the code. Filter it out here.
+            // PDOException and possibly others use a string for the code. Filter it out here.
             $code = -1;
         }
 
@@ -50,7 +56,7 @@ class SimpleSAML_Error_UnserializableException extends SimpleSAML_Error_Exceptio
      *
      * @return string  The classname.
      */
-    public function getClass()
+    public function getClass(): string
     {
         return $this->class;
     }

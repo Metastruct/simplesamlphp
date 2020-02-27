@@ -1,5 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
+namespace SimpleSAML;
+
+use Webmozart\Assert\Assert;
 
 /**
  * Statistics handler class.
@@ -8,9 +13,9 @@
  *
  * @package SimpleSAMLphp
  */
-class SimpleSAML_Stats
-{
 
+class Stats
+{
     /**
      * Whether this class is initialized.
      *
@@ -30,14 +35,14 @@ class SimpleSAML_Stats
     /**
      * Create an output from a configuration object.
      *
-     * @param SimpleSAML_Configuration $config The configuration object.
+     * @param \SimpleSAML\Configuration $config The configuration.
      *
      * @return mixed A new instance of the configured class.
      */
-    private static function createOutput(SimpleSAML_Configuration $config)
+    private static function createOutput(Configuration $config)
     {
         $cls = $config->getString('class');
-        $cls = SimpleSAML\Module::resolveClass($cls, 'Stats_Output', 'SimpleSAML_Stats_Output');
+        $cls = Module::resolveClass($cls, 'Stats\Output', '\SimpleSAML\Stats\Output');
 
         $output = new $cls($config);
         return $output;
@@ -46,16 +51,17 @@ class SimpleSAML_Stats
 
     /**
      * Initialize the outputs.
+     *
+     * @return void
      */
-    private static function initOutputs()
+    private static function initOutputs(): void
     {
+        $config = Configuration::getInstance();
+        $outputCfgs = $config->getArray('statistics.out', []);
 
-        $config = SimpleSAML_Configuration::getInstance();
-        $outputCfgs = $config->getConfigList('statistics.out', array());
-
-        self::$outputs = array();
+        self::$outputs = [];
         foreach ($outputCfgs as $cfg) {
-            self::$outputs[] = self::createOutput($cfg);
+            self::$outputs[] = self::createOutput(Configuration::loadFromArray($cfg));
         }
     }
 
@@ -68,12 +74,11 @@ class SimpleSAML_Stats
      *
      * @return void|boolean False if output is not enabled, void otherwise.
      */
-    public static function log($event, array $data = array())
+    public static function log(string $event, array $data = [])
     {
-        assert(is_string($event));
-        assert(!isset($data['op']));
-        assert(!isset($data['time']));
-        assert(!isset($data['_id']));
+        Assert::keyNotExists($data, 'op');
+        Assert::keyNotExists($data, 'time');
+        Assert::keyNotExists($data, '_id');
 
         if (!self::$initialized) {
             self::initOutputs();
@@ -82,7 +87,7 @@ class SimpleSAML_Stats
 
         if (empty(self::$outputs)) {
             // not enabled
-            return;
+            return false;
         }
 
         $data['op'] = $event;

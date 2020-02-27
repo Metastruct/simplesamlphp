@@ -1,15 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace SimpleSAML;
 
-use SimpleSAML\Error\CriticalConfigurationError;
+use SimpleSAML\Error;
 
 /**
  * Base class for data stores.
  *
  * @package SimpleSAMLphp
  */
-abstract class Store
+abstract class Store implements Utils\ClearableState
 {
     /**
      * Our singleton instance.
@@ -24,7 +26,7 @@ abstract class Store
     /**
      * Retrieve our singleton instance.
      *
-     * @return false|\SimpleSAML\Store The data store, or false if it isn't enabled.
+     * @return \SimpleSAML\Store|false The data store, or false if it isn't enabled.
      *
      * @throws \SimpleSAML\Error\CriticalConfigurationError
      */
@@ -34,11 +36,8 @@ abstract class Store
             return self::$instance;
         }
 
-        $config = \SimpleSAML_Configuration::getInstance();
-        $storeType = $config->getString('store.type', null);
-        if ($storeType === null) {
-            $storeType = $config->getString('session.handler', 'phpsession');
-        }
+        $config = Configuration::getInstance();
+        $storeType = $config->getString('store.type', 'phpsession');
 
         switch ($storeType) {
             case 'phpsession':
@@ -61,12 +60,13 @@ abstract class Store
                 } catch (\Exception $e) {
                     $c = $config->toArray();
                     $c['store.type'] = 'phpsession';
-                    throw new CriticalConfigurationError(
+                    throw new Error\CriticalConfigurationError(
                         "Invalid 'store.type' configuration option. Cannot find store '$storeType'.",
                         null,
                         $c
                     );
                 }
+                /** @var \SimpleSAML\Store|false */
                 self::$instance = new $className();
         }
 
@@ -82,7 +82,7 @@ abstract class Store
      *
      * @return mixed|null The value.
      */
-    abstract public function get($type, $key);
+    abstract public function get(string $type, string $key);
 
 
     /**
@@ -92,8 +92,9 @@ abstract class Store
      * @param string   $key The key.
      * @param mixed    $value The value.
      * @param int|null $expire The expiration time (unix timestamp), or null if it never expires.
+     * @return void
      */
-    abstract public function set($type, $key, $value, $expire = null);
+    abstract public function set(string $type, string $key, $value, ?int $expire = null): void;
 
 
     /**
@@ -101,6 +102,17 @@ abstract class Store
      *
      * @param string $type The data type.
      * @param string $key The key.
+     * @return void
      */
-    abstract public function delete($type, $key);
+    abstract public function delete(string $type, string $key): void;
+
+
+    /**
+     * Clear any SSP specific state, such as SSP environmental variables or cached internals.
+     * @return void
+     */
+    public static function clearInternalState(): void
+    {
+        self::$instance = null;
+    }
 }

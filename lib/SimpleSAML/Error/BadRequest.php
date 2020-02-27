@@ -1,5 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
+namespace SimpleSAML\Error;
+
+use Webmozart\Assert\Assert;
+
 /**
  * Exception which will show a 400 Bad Request error page.
  *
@@ -9,12 +15,12 @@
  * @author Olav Morken, UNINETT AS.
  * @package SimpleSAMLphp
  */
-class SimpleSAML_Error_BadRequest extends SimpleSAML_Error_Error
+
+class BadRequest extends Error
 {
-
-
     /**
      * Reason why this request was invalid.
+     * @var string
      */
     private $reason;
 
@@ -24,12 +30,10 @@ class SimpleSAML_Error_BadRequest extends SimpleSAML_Error_Error
      *
      * @param string $reason  Description of why the request was unacceptable.
      */
-    public function __construct($reason)
+    public function __construct(string $reason)
     {
-        assert(is_string($reason));
-
         $this->reason = $reason;
-        parent::__construct(array('BADREQUEST', '%REASON%' => $this->reason));
+        parent::__construct(['BADREQUEST', '%REASON%' => $this->reason]);
         $this->httpCode = 400;
     }
 
@@ -39,7 +43,7 @@ class SimpleSAML_Error_BadRequest extends SimpleSAML_Error_Error
      *
      * @return string  The reason why the request was invalid.
      */
-    public function getReason()
+    public function getReason(): string
     {
         return $this->reason;
     }
